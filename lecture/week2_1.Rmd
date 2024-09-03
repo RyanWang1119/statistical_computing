@@ -1,0 +1,50 @@
+---
+title: "week2_1"
+author: "Ryan Wang"
+date: "2024-09-03"
+output:
+  html_document:
+    citation_package: bibtex
+  pdf_document: default
+bibliography: "my-refs.bib"
+---
+
+```{r setup, include=FALSE}
+knitr::write_bib("rmarkdown", file = "my-refs.bib")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Citation
+
+I have been using the amazing Rmarkdown package [@R-rmarkdown]! I should also go and read [@rmarkdown2018; @rmarkdown2018] books.
+
+## Find and create files
+```{r}
+library(here)
+file.exists(here("lecture", "week2_1.Rmd"))  # logical test if the file exists
+# dir.create(here("my", "relative", "path"))  # create a folder
+# list.files(here("my", "relative", "path"))  # list contents of folder
+# file.create(here("my", "relative", "path"))  # create a file
+# file.remove(here("my", "relative", "path"))  #delete a file
+```
+
+## R code
+```{r}
+# source(here::here("functions.R"))
+```
+To read in the R script file.
+
+## R objects
+```{r}
+x <- c(1,2,3)
+saveRDS(x, file = here("data", "x.Rda"))
+
+new_x1 <- readRDS(here("data", "x.Rda"))
+new_x1
+
+new_x2 <- load(here("data", "x.Rda"))
+new_x2
+```
+.RData, .Rda: Stores multiple R objects
+.Rds: Stores a single R object
+
