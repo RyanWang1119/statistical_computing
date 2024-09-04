@@ -1,0 +1,112 @@
+---
+title: "project1_RyanWang"
+output: html_document
+date: "2024-09-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("tidyverse")
+library("tidytuesdayR")
+```
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load("2022-01-18")
+chocolate <- tuesdata$chocolate
+```
+
+```{r}
+library("here")
+library("tidyverse")
+
+# tests if a directory named "data" exists locally
+if (!dir.exists(here("data"))) {
+    dir.create(here("data"))
+}
+
+# saves data only once (not each time you knit a R Markdown)
+if (!file.exists(here("data", "chocolate.RDS"))) {
+    url_csv <- "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-01-18/chocolate.csv"
+    chocolate <- readr::read_csv(url_csv)
+
+    # save the file to RDS objects
+    saveRDS(chocolate, file = here("data", "chocolate.RDS"))
+}
+```
+
+```{r}
+chocolate <- readRDS(here("data", "chocolate.RDS"))
+as_tibble(chocolate)
+```
+
+## Part 1
+```{r}
+for (i in c(10, 15, 20, 25)) {
+  p <- ggplot2::ggplot(data = chocolate, mapping = aes(rating)) + 
+       geom_histogram(bins = i) + labs(x="Rating")
+  print(p)
+}
+
+nlevels(as.factor(chocolate$rating))
+```
+1. The bins argument sets the total number of bins. So, the four plots have number of bins of 10, 15, 20, 25 respectively.
+I would pick bins=15, because the variable rating has 12 levels. Choosing the number of bins to be close to it makes the bins neither too dispersive nor clustered together. 
+
+```{r}
+nlevels(as.factor(chocolate$country_of_bean_origin))
+levels(as.factor(chocolate$country_of_bean_origin))
+
+library(dplyr)
+reviews_count <- chocolate %>%
+  count(country_of_bean_origin, sort = TRUE)
+
+ggplot(data=reviews_count, aes(y=n, x= with(reviews_count, reorder(country_of_bean_origin, n)))) + geom_col() + 
+  labs(y="Number of Reviews", x="Bean Origin") + coord_flip()
+```
+
+```{r}
+ecuador_rating <- chocolate %>% filter(country_of_bean_origin == "Ecuador")
+
+rating_mean <- mean(ecuador_rating$rating)
+rating_num <- length(ecuador_rating$rating)
+rating_sd <- sd(ecuador_rating$rating)
+
+ecuador_summary <- data.frame(rating_mean, rating_sd, rating_num)
+colnames(ecuador_summary) <- c("mean", "sd", "total")
+ecuador_summary
+```
+
+```{r}
+ecuador_rating_bycountry <- ecuador_rating %>%
+  group_by(company_manufacturer) %>%
+  summarize(rating_mean = mean(rating))
+
+ecuador_rating_bycountry_sorted <- ecuador_rating_bycountry %>% arrange(desc(rating_mean))
+
+best_choco_ecuador <- ecuador_rating_bycountry_sort[1:5,1]
+best_choco_ecuador
+```
+Amano, Benoit Nihant, Beschle (Felchlin), Durci, Smooth Chocolator, The.
+
+```{r}
+choco_rating_byorigin_sorted <- chocolate %>%
+  group_by(country_of_bean_origin) %>%
+  summarize(rating_mean = mean(rating))%>% arrange(desc(rating_mean))
+
+top_3_country <- choco_rating_byorigin_sorted[1:3,1]
+top_3_country
+```
+```{r}
+choco_rating_num_byorigin <- chocolate %>%
+  group_by(country_of_bean_origin) %>%
+  summarize(rating_num = length(rating)) %>% filter(rating_num>=10)
+
+countries_with_10_ratings <- choco_rating_num_byorigin$country_of_bean_origin
+
+chocolate_rating_filtered <- chocolate %>%
+  filter(country_of_bean_origin %in% countries_with_10_ratings) %>%
+  group_by(country_of_bean_origin) %>%
+  summarize(rating_mean = mean(rating))%>% arrange(desc(rating_mean))
+
+```
+
