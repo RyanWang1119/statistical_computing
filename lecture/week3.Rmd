@@ -1,0 +1,64 @@
+---
+title: "week3"
+author: "Ryan Wang"
+date: "2024-09-05"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::write_bib("rmarkdown", file = "my-refs.bib")
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+```
+
+## tidy data
+1. Each variable forms a column.
+
+2. Each observation forms a row.
+
+3. Each type of observational unit forms a table.
+
+## pivot_longer
+pivot_longer(data, cols, names_to, values_to)
+
+data: the data frame
+
+cols: the columns to be gathered into the long format.
+
+names_to: the name of the new column that will contain the names of the columns being gathered.
+
+values_to: the name of the new column that will contain the values from the gathered columns.
+```{r}
+relig_income
+
+relig_income %>%
+    pivot_longer(-religion, names_to = "income", values_to = "respondents") %>%
+    mutate(religion = factor(religion), income = factor(income))
+
+# Gather everything EXCEPT religion to tidy data
+pivot_longer(relig_income, cols = -religion, names_to = "Income", values_to = "responce")
+```
+
+## pivot_wider
+creating summary tables.
+```{r}
+relig_income %>%
+    pivot_longer(-religion, names_to = "income", values_to = "respondents") %>%
+    mutate(religion = factor(religion), income = factor(income)) %>%
+    group_by(income) %>%
+    summarize(total_respondents = sum(respondents))
+
+relig_income %>%
+    pivot_longer(-religion, names_to = "income", values_to = "respondents") %>%
+    mutate(religion = factor(religion), income = factor(income)) %>%
+    group_by(income) %>%
+    summarize(total_respondents = sum(respondents)) %>%
+    pivot_wider(
+        names_from = "income",
+        values_from = "total_respondents"
+    ) %>%
+    knitr::kable()
+```
+
