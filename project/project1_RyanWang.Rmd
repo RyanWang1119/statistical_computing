@@ -8,6 +8,9 @@ date: "2024-09-03"
 knitr::opts_chunk$set(echo = TRUE)
 library("tidyverse")
 library("tidytuesdayR")
+library("here")
+library("dplyr")
+library("gapminder")
 ```
 
 ```{r}
@@ -16,9 +19,6 @@ chocolate <- tuesdata$chocolate
 ```
 
 ```{r}
-library("here")
-library("tidyverse")
-
 # tests if a directory named "data" exists locally
 if (!dir.exists(here("data"))) {
     dir.create(here("data"))
@@ -43,7 +43,7 @@ as_tibble(chocolate)
 ```{r}
 for (i in c(10, 15, 20, 25)) {
   p <- ggplot2::ggplot(data = chocolate, mapping = aes(rating)) + 
-       geom_histogram(bins = i) + labs(x="Rating")
+       geom_histogram(bins = i) + labs(x="Rating")  # change the number of bins
   print(p)
 }
 
@@ -56,57 +56,118 @@ I would pick bins=15, because the variable rating has 12 levels. Choosing the nu
 nlevels(as.factor(chocolate$country_of_bean_origin))
 levels(as.factor(chocolate$country_of_bean_origin))
 
-library(dplyr)
 reviews_count <- chocolate %>%
   count(country_of_bean_origin, sort = TRUE)
 
-ggplot(data=reviews_count, aes(y=n, x= with(reviews_count, reorder(country_of_bean_origin, n)))) + geom_col() + 
-  labs(y="Number of Reviews", x="Bean Origin") + coord_flip()
+ggplot(data=reviews_count, aes(y=n, x= with(reviews_count, reorder(country_of_bean_origin, n)))) + 
+  geom_col() + coord_flip() +
+  labs(y="Number of Reviews", x="Bean Origin", title = "Reviews from each Country of Bean Origin") 
 ```
 
-```{r}
-ecuador_rating <- chocolate %>% filter(country_of_bean_origin == "Ecuador")
 
-rating_mean <- mean(ecuador_rating$rating)
-rating_num <- length(ecuador_rating$rating)
-rating_sd <- sd(ecuador_rating$rating)
+```{r}
+ecuador_rating <- chocolate %>% filter(country_of_bean_origin == "Ecuador")  # select Ecuador
+
+rating_mean <- mean(ecuador_rating$rating)  # mean rating
+rating_num <- length(ecuador_rating$rating)  # number of reviews
+rating_sd <- sd(ecuador_rating$rating)  # standard deviation
 
 ecuador_summary <- data.frame(rating_mean, rating_sd, rating_num)
 colnames(ecuador_summary) <- c("mean", "sd", "total")
-ecuador_summary
+
+ecuador_summary %>% knitr::kable()
 ```
+3. The average rating is 3.164, the standard deviation of the rating is 0.512. The total number of rating is 219.
+
 
 ```{r}
-ecuador_rating_bycountry <- ecuador_rating %>%
-  group_by(company_manufacturer) %>%
-  summarize(rating_mean = mean(rating))
+ecuador_rating_by_company <- ecuador_rating %>%
+  group_by(company_manufacturer) %>%  # group by company
+  summarize(rating_mean = mean(rating))  # mean rating
 
-ecuador_rating_bycountry_sorted <- ecuador_rating_bycountry %>% arrange(desc(rating_mean))
+ecuador_rating_by_company_sorted <- ecuador_rating_by_company %>% arrange(desc(rating_mean))
 
-best_choco_ecuador <- ecuador_rating_bycountry_sort[1:5,1]
+best_choco_ecuador <- ecuador_rating_by_company_sorted[1:5,1]
 best_choco_ecuador
 ```
-Amano, Benoit Nihant, Beschle (Felchlin), Durci, Smooth Chocolator, The.
+4. Amano, Benoit Nihant, Beschle (Felchlin), Durci, Smooth Chocolator, The. They all have the average ratings of 4.
 
 ```{r}
-choco_rating_byorigin_sorted <- chocolate %>%
-  group_by(country_of_bean_origin) %>%
+choco_rating_by_origin_sorted <- chocolate %>%
+  group_by(country_of_bean_origin) %>%  # group by origin
   summarize(rating_mean = mean(rating))%>% arrange(desc(rating_mean))
 
-top_3_country <- choco_rating_byorigin_sorted[1:3,1]
+top_3_country <- choco_rating_by_origin_sorted[1:3,1]
 top_3_country
 ```
-```{r}
-choco_rating_num_byorigin <- chocolate %>%
-  group_by(country_of_bean_origin) %>%
-  summarize(rating_num = length(rating)) %>% filter(rating_num>=10)
+5. The top 3 countries with highest ratings on average is Tobago, China, Sao Tome & Principe.
 
-countries_with_10_ratings <- choco_rating_num_byorigin$country_of_bean_origin
+```{r}
+choco_rating_num_by_origin <- chocolate %>%
+  group_by(country_of_bean_origin) %>%  # group by origin
+  summarize(rating_num = length(rating)) %>% filter(rating_num>=10)  # remove origins with less than 10 reviews
+
+countries_with_10_ratings <- choco_rating_num_by_origin$country_of_bean_origin
 
 chocolate_rating_filtered <- chocolate %>%
   filter(country_of_bean_origin %in% countries_with_10_ratings) %>%
   group_by(country_of_bean_origin) %>%
   summarize(rating_mean = mean(rating))%>% arrange(desc(rating_mean))
 
+top_3_country_filtered <- chocolate_rating_filtered[1:3,1]
+top_3_country_filtered
+```
+6. Now, the to 3 countries with highest ratings are Solomon Islands, Congo, Cuba.
+
+```{r}
+choco_50rating_num_by_origin <- chocolate %>%
+  group_by(country_of_bean_origin) %>%  # group by origin
+  summarize(rating_num = length(rating)) %>% filter(rating_num>=50)
+
+countries_with_50_ratings <- choco_50rating_num_by_origin$country_of_bean_origin 
+
+chocolate_50rating <- chocolate %>%
+  filter(country_of_bean_origin %in% countries_with_50_ratings) %>% # countries with at least 50 reviews
+  mutate(cocoa_percent_numeric = as.numeric(as.numeric(gsub("%", "", cocoa_percent)))) %>%
+  mutate(percentage = case_when(cocoa_percent_numeric <60 ~ "<60%",
+                      cocoa_percent_numeric>=60 & cocoa_percent_numeric<70 ~ ">=60 to <70%",
+                      cocoa_percent_numeric>=70 & cocoa_percent_numeric<90 ~ ">=70 to <90%",
+                                cocoa_percent_numeric>=90 ~ ">=90%")) %>% # new column that identify the percentages
+  mutate(percentage = as.factor(percentage)) %>%
+  mutate(percentage = fct_relevel(percentage, c("<60%", ">=60 to <70%", ">=70 to <90%", ">=90%"))) %>%
+  arrange((cocoa_percent_numeric)) 
+
+ggplot(chocolate_50rating, aes(y=rating, x=percentage)) + geom_boxplot() +
+  facet_wrap(~country_of_bean_origin)
+```
+```{r}
+chocolate_rating_by_percent <- chocolate_50rating %>%
+  group_by(percentage) %>%
+  summarize(rating_mean = mean(rating))%>% arrange(desc(rating_mean))
+chocolate_rating_by_percent
+```
+The second category, ">= 60 to <70%" has the highest rating on average. A few countries have disagreements with this result, such as Nicaragua, Mexico, Brazil, Blend, Bellize.
+
+## Part 2
+```{r}
+# Filter out countries with less than 10 reviews and remove "Blend"
+chocolate_reviews_filtered <- chocolate %>%
+  filter(country_of_bean_origin != "Blend") %>%
+  group_by(country_of_bean_origin) %>%
+  filter(n() >= 10) %>%
+  ungroup()
+
+# Extract the list of countries from the chocolate reviews dataset
+countries_in_chocolate_reviews <- chocolate_reviews_filtered$country_of_bean_origin
+
+# Filter the gapminder dataset to only include these countries
+gapminder_filtered <- gapminder %>%
+  filter(country %in% countries_in_chocolate_reviews)
+
+# Join the two datasets on the country column
+chocolate_reviews_with_continent <- chocolate_reviews_filtered %>%
+
+  left_join(gapminder_filtered, by = c("country_of_bean_origin" = "country"), relationship = "many-to-many") %>%
+  select(-year, -pop, -lifeExp, -gdpPercap) 
 ```
 
