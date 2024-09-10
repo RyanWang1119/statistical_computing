@@ -62,3 +62,85 @@ relig_income %>%
     knitr::kable()
 ```
 
+
+## Joining data
+A primary key uniquely identifies an observation in its own table.
+A foreign key uniquely identifies an observation in another table.
+
+## Mutating joins
+### left_join()
+left_join()	Includes all observations in the left data frame, whether or not there is a match in the right data frame
+```{r}
+outcomes <- tibble(
+    id = rep(c("a", "b", "c"), each = 3),
+    visit = rep(0:2, 3),
+    outcome = rnorm(3 * 3, 3)
+)
+outcomes
+
+subjects <- tibble(
+    id = c("a", "b", "c"),
+    house = c("detached", "rowhouse", "rowhouse")
+)
+subjects
+
+subjects_1 <- tibble(
+    id = c("b", "c"),
+    visit = c(1, 0),
+    house = c("rowhouse", "rowhouse"),
+)
+
+subjects_1
+
+left_join(outcomes, subjects, by = "id")
+left_join(outcomes, subjects_1, by = "id")
+left_join(outcomes, subjects_1, by = c("id", "visit"))  # id and visit together identify a row.
+```
+
+### inner_join()
+inner_join() Includes only observations that are in both data frames.
+```{r}
+inner_join(x = outcomes, y = subjects_1, by = c("id", "visit"))
+
+identical(inner_join(outcomes, subjects_1, by = c("id", "visit")), 
+          right_join(x = outcomes, y = subjects_1, by = c("id", "visit")))
+```
+
+### full_join()
+full_join()	Includes all observations from both data frames.
+```{r}
+full_join(x = outcomes, y = subjects_1, by = c("id", "visit"))
+
+identical(left_join(outcomes, subjects_1, by = c("id", "visit")), 
+          full_join(x = outcomes, y = subjects_1, by = c("id", "visit")))
+```
+
+## ggplot
+Components:
+
+A data frame: stores all of the data that will be displayed on the plot
+
+aesthetic mappings: describe how data are mapped to color, size, shape, location
+
+geoms: geometric objects like points, lines, shapes
+
+facets: describes how conditional/panel plots should be constructed
+
+stats: statistical transformations like binning, quantiles, smoothing
+
+scales: what scale an aesthetic map uses (example: left-handed = red, right-handed = blue)
+
+coordinate system: describes the system in which the locations of the geoms will be drawn
+```{r}
+maacs <- read_csv(here("data", "bmi_pm25_no2_sim.csv"),
+    col_types = "nnci"
+)
+maacs
+
+g <- ggplot(maacs, aes(
+    x = logpm25,
+    y = NocturnalSympt
+))
+summary(g)
+```
+
