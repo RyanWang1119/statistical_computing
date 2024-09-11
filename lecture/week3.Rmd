@@ -137,10 +137,38 @@ maacs <- read_csv(here("data", "bmi_pm25_no2_sim.csv"),
 )
 maacs
 
-g <- ggplot(maacs, aes(
-    x = logpm25,
-    y = NocturnalSympt
-))
+g <- ggplot(maacs, aes(x = logpm25, y = NocturnalSympt))
 summary(g)
+
+print(g)
+```
+
+```{r}
+g + geom_point()
+g + geom_point() + geom_smooth()
+g + geom_point() + geom_smooth(method = "lm")
+
+g + geom_point() + geom_smooth(method = "lm") + facet_grid(. ~ bmicat)  # stratify the scatter plot by categorical variable
+```
+
+### Customizing the points
+```{r}
+g + geom_point(color = "steelblue", size = 4, alpha = 1 / 2)
+g + geom_point(aes(color = bmicat), size = 4, alpha = 1 / 2)
+```
+
+### Customizing the smooth
+```{r}
+g +
+    geom_point(aes(color = bmicat),
+        size = 2,
+        alpha = 1 / 2
+    ) +
+    geom_smooth(
+        linewidth = 4,
+        linetype = 3,
+        method = "lm",
+        se = FALSE
+    )
 ```
 
