@@ -11,6 +11,8 @@ library("tidytuesdayR")
 library("here")
 library("dplyr")
 library("gapminder")
+library("stringr")
+library("ThemePark")
 ```
 
 ```{r}
@@ -122,9 +124,9 @@ top_3_country_filtered
 ```{r}
 choco_50rating_num_by_origin <- chocolate %>%
   group_by(country_of_bean_origin) %>%  # group by origin
-  summarize(rating_num = length(rating)) %>% filter(rating_num>=50)
+  summarize(rating_num = length(rating)) %>% filter(rating_num>=50)  # at least 50 reviews
 
-countries_with_50_ratings <- choco_50rating_num_by_origin$country_of_bean_origin 
+countries_with_50_ratings <- choco_50rating_num_by_origin$country_of_bean_origin  
 
 chocolate_50rating <- chocolate %>%
   filter(country_of_bean_origin %in% countries_with_50_ratings) %>% # countries with at least 50 reviews
@@ -138,8 +140,9 @@ chocolate_50rating <- chocolate %>%
   arrange((cocoa_percent_numeric)) 
 
 ggplot(chocolate_50rating, aes(y=rating, x=percentage)) + geom_boxplot() +
-  facet_wrap(~country_of_bean_origin)
+  facet_wrap(.~country_of_bean_origin)
 ```
+
 ```{r}
 chocolate_rating_by_percent <- chocolate_50rating %>%
   group_by(percentage) %>%
@@ -150,24 +153,191 @@ The second category, ">= 60 to <70%" has the highest rating on average. A few co
 
 ## Part 2
 ```{r}
-# Filter out countries with less than 10 reviews and remove "Blend"
 chocolate_reviews_filtered <- chocolate %>%
-  filter(country_of_bean_origin != "Blend") %>%
-  group_by(country_of_bean_origin) %>%
-  filter(n() >= 10) %>%
-  ungroup()
+  group_by(country_of_bean_origin) %>%  # group by origin
+  summarize(rating_num = length(rating)) %>% filter(rating_num>=10) %>%  # at least 10 reviews
+  filter(country_of_bean_origin != "Blend")  # remove blend
 
-# Extract the list of countries from the chocolate reviews dataset
-countries_in_chocolate_reviews <- chocolate_reviews_filtered$country_of_bean_origin
+countries__part2 <- chocolate_reviews_filtered$country_of_bean_origin
+chocolate_part2 <- chocolate %>% filter(country_of_bean_origin %in% countries__part2)
 
-# Filter the gapminder dataset to only include these countries
-gapminder_filtered <- gapminder %>%
-  filter(country %in% countries_in_chocolate_reviews)
+gapminder_data <- gapminder %>% select(country, continent)
+country_continent <- unique(gapminder_data)
 
-# Join the two datasets on the country column
 chocolate_reviews_with_continent <- chocolate_reviews_filtered %>%
+  left_join(country_continent, by = c("country_of_bean_origin" = "country"))
 
-  left_join(gapminder_filtered, by = c("country_of_bean_origin" = "country"), relationship = "many-to-many") %>%
-  select(-year, -pop, -lifeExp, -gdpPercap) 
+
+fill_continent <- c(
+  "Belize" ="Americas",
+  "Congo" ="Africa",
+  "Fiji" ="Oceania",
+  "Grenada" ="Americas",
+  "Papua New Guinea" ="Oceania",
+  "Sao Tome" ="Africa",
+  "Solomon Islands" ="Oceania",
+  "St. Lucia" ="Americas",
+  "Trinidad" ="Americas",
+  "U.S.A." ="Americas",
+  "Vanuatu" ="Oceania"
+)
+
+chocolate_reviews_with_continent <-chocolate_reviews_with_continent %>% 
+  mutate(continent = ifelse(is.na(continent), fill_continent[country_of_bean_origin], continent))
 ```
+
+## Part 3
+```{r}
+chocolate_part3 <- chocolate %>% 
+  mutate(ingredients = ifelse(is.na(ingredients), 'none', ingredients))%>%  # set ingredients to none if na
+  mutate(
+    beans = if_else(str_detect(ingredients, "B"), 1, 0),
+    sugar = if_else(str_detect(ingredients, "S"), 1, 0),
+    cocoa_butter = if_else(str_detect(ingredients, "C"), 1, 0),
+    vanilla = if_else(str_detect(ingredients, "V"), 1, 0),
+    lecithin = if_else(str_detect(ingredients, "L"), 1, 0),
+    salt = if_else(str_detect(ingredients, "S"), 1, 0)  # 1
+  ) %>%
+  
+  mutate(
+    char_cocoa = if_else(str_detect(most_memorable_characteristics, "cocoa"), 1, 0),
+    char_sweet = if_else(str_detect(most_memorable_characteristics, "sweet"), 1, 0),
+    char_nutty = if_else(str_detect(most_memorable_characteristics, "nutty"), 1, 0),
+    char_creamy = if_else(str_detect(most_memorable_characteristics, "creamy"), 1, 0),
+    char_roasty = if_else(str_detect(most_memorable_characteristics, "roasty"), 1, 0),
+    char_earthy = if_else(str_detect(most_memorable_characteristics, "earthy"), 1, 0)  # 2
+  ) %>%
+  
+  group_by(review_date) %>%
+  summarize(
+    beans = mean(beans, na.rm = TRUE),
+    sugar = mean(sugar, na.rm = TRUE),
+    cocoa_butter = mean(cocoa_butter, na.rm = TRUE),
+    vanilla = mean(vanilla, na.rm = TRUE),
+    lecithin = mean(lecithin, na.rm = TRUE),
+    salt = mean(salt, na.rm = TRUE),
+    char_cocoa = mean(char_cocoa, na.rm = TRUE),
+    char_sweet = mean(char_sweet, na.rm = TRUE),
+    char_nutty = mean(char_nutty, na.rm = TRUE),
+    char_creamy = mean(char_creamy, na.rm = TRUE),
+    char_roasty = mean(char_roasty, na.rm = TRUE),
+    char_earthy = mean(char_earthy, na.rm = TRUE)
+  ) %>%
+  
+  pivot_longer(cols = c("beans", "sugar", "cocoa_butter", "vanilla", "lecithin", 
+                        "salt", "char_cocoa", "char_sweet", "char_nutty", "char_creamy",
+                        "char_roasty", "char_earthy"), 
+               names_to = "feature", 
+               values_to = "mean_score")
+```
+
+## part 4
+```{r}
+ggplot(chocolate_part3, aes(y=mean_score, x=review_date)) + geom_point(color = "red", size = 1, alpha = 0.6) +
+    geom_smooth(method = "loess", size = 1) + facet_wrap( ~ feature, nrow = 3) +
+  labs(title = "Changes in Chocolate Ingredients over Time",
+       subtitle = "Vanilla and lecithin have significant decreases through the years, \n while most of the other features remain the same.",
+       x = "Review Year", y = "Score",
+       caption = "By Ryan Wang") +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 12, face = "italic"),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    strip.text = element_text(size = 10, face = "bold"),
+    plot.caption = element_text(size = 10)
+  )
+```
+
+## part 5
+```{r}
+ggplot(chocolate_50rating, aes(x = rating, y = cocoa_percent_numeric)) +
+  
+  # 1. Use points with an obnoxiously large size
+  geom_point(size = 20, color = "yellow", alpha = 1) +
+  
+  # 2. Overuse color for no reason (random fill color)
+  geom_point(aes(color = factor(review_date)), size = 15) +
+  
+  # 4. Remove the axis labels to confuse viewers
+  labs(x = "", y = "") +
+  
+  # 5. Add an excessive, unreadable title and subtitle
+  labs(title = "Ratings and Cocoa Percent\nDid you know that chocolate is sweet?", 
+       subtitle = "Also, it's brown\nAnd people eat it") +
+  
+  # 6. Use a garish, eye-hurting color palette for background and text
+  theme(
+    plot.background = element_rect(fill = "orange"),
+    panel.background = element_rect(fill = "purple"),
+    plot.title = element_text(size = 30, face = "bold", color = "green"),
+    plot.subtitle = element_text(size = 20, face = "italic", color = "red")
+  ) +
+  
+  # 7. Rotate x-axis labels by 90 degrees unnecessarily
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+- I make the rating be the independent variable and the cocoa percentage the response variable. They should be switched if we want to study how cocoa percentage affects the ratings of chocolates.
+
+-
+
+- 
+
+- 
+
+- 
+
+- 
+
+- 
+
+-  
+
+## part 6
+```{r}
+chocolate %>%
+    ggplot(aes(
+        x = as.factor(review_date),
+        y = rating,
+        fill = review_date
+    )) +
+    geom_violin(alpha = 0.6, trim = F) + geom_jitter(width = 0.2, size = 1) + 
+   scale_fill_gradient(low = "blue", high = "red") + 
+  labs(x = "Year", y = "Rating", title = "Chocolate Ratings Over the Years",
+       caption = "By Ryan Wang")  +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title.x = element_text(size = 12),
+    axis.text.x = element_text(angle = 30),
+    axis.title.y = element_text(size = 12),
+    strip.text = element_text(size = 10, face = "bold"),
+    plot.caption = element_text(size = 10),
+    legend.position = "none",
+    panel.grid.major = element_line(colour = "gray80")
+  ) 
+```
+
+- In geom_violin(), I set alpha = 0.6 to add some transparency, and trim = F to not to trim the tails.
+
+- I add geom_jitter() so that the plot will display the original data. I set width = 0.2 to ensure the data points from a certain year do not overlap with the ones from another year. size = 1 to set the size of the points.
+
+- I add the scale_fill_gradient() and customize the color of the violins such that the color changes from blue to red as year goes.
+
+- I add the labs() to customize the labels of y, x axis, title, and the caption.
+
+- Use theme() to customize the size of the title, labels, and caption.
+
+- In theme(), set legend.position = "none" so that the legend will not be displayed.
+
+- In theme(), use axis.text.x = element_text(angle = 30) to rotate the x-axis labels.
+
+- In theme(), use panel.grid.major = element_line(colour = "gray80") to make the background look differently. 
+
+
+
+
+
+
 
