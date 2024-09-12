@@ -12,7 +12,6 @@ library("here")
 library("dplyr")
 library("gapminder")
 library("stringr")
-library("ThemePark")
 ```
 
 ```{r}
@@ -252,48 +251,37 @@ ggplot(chocolate_part3, aes(y=mean_score, x=review_date)) + geom_point(color = "
 ## part 5
 ```{r}
 ggplot(chocolate_50rating, aes(x = rating, y = cocoa_percent_numeric)) +
-  
-  # 1. Use points with an obnoxiously large size
-  geom_point(size = 20, color = "yellow", alpha = 1) +
-  
-  # 2. Overuse color for no reason (random fill color)
-  geom_point(aes(color = factor(review_date)), size = 15) +
-  
-  # 4. Remove the axis labels to confuse viewers
-  labs(x = "", y = "") +
-  
+    geom_point(size = 20, color = "yellow", alpha = 1) +
+    geom_point(aes(color = factor(review_date)), size = 15) +
   # 5. Add an excessive, unreadable title and subtitle
-  labs(title = "Ratings and Cocoa Percent\nDid you know that chocolate is sweet?", 
-       subtitle = "Also, it's brown\nAnd people eat it") +
+  labs(x = "", y = "", 
+       title = "Ratings and Cocoa Percent") +
   
-  # 6. Use a garish, eye-hurting color palette for background and text
   theme(
     plot.background = element_rect(fill = "orange"),
     panel.background = element_rect(fill = "purple"),
-    plot.title = element_text(size = 30, face = "bold", color = "green"),
-    plot.subtitle = element_text(size = 20, face = "italic", color = "red")
-  ) +
-  
-  # 7. Rotate x-axis labels by 90 degrees unnecessarily
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+    plot.title = element_text(size = 30, face = "bold"),
+    legend.position = "left",
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  )
 
 ```
 
 - I make the rating be the independent variable and the cocoa percentage the response variable. They should be switched if we want to study how cocoa percentage affects the ratings of chocolates.
 
--
+- In geom_point(), I set size = 20 to make individual data points extremely large. For a better plot, I might want to change their sizes based on the density of the points.
 
-- 
+- In geom_point(), I set alpha = 1 to make data points solid. For a better plot, I might want to change alpha to a lower value to add transparency so that the density of the color can reflect how many points are overlapping.
 
-- 
+- In geom_point(), I add aes(color = factor(review_date) so that the color or the points vary with the year of review. It is not necessary since the year of review is not interest of research here. This function can be used when the categorical variable matters, like the penguin example in the lecture.
 
-- 
+- In labs(), I omit the labels for x and y axis, which are almost always required in a proper plot.
 
-- 
+- In theme(), I customize the color to make the background uncomfortable to see. For a better plot, I might use other colors or functions from theme_park package.
 
-- 
+- In theme(), I make the size of the title extremely large and put the legend in an awkward position. For a better plot, I might want to change them in a better way.
 
--  
+-  In theme(), I rotate the labels of the x axis by 90 degree. This function can be used when the words are overlapped and rotating them by some degree can make them better to see.
 
 ## part 6
 ```{r}
