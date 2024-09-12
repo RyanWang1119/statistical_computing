@@ -152,20 +152,21 @@ The second category, ">= 60 to <70%" has the highest rating on average. A few co
 
 ## Part 2
 ```{r}
-chocolate_reviews_filtered <- chocolate %>%
-  group_by(country_of_bean_origin) %>%  # group by origin
-  summarize(rating_num = length(rating)) %>% filter(rating_num>=10) %>%  # at least 10 reviews
-  filter(country_of_bean_origin != "Blend")  # remove blend
-
 countries__part2 <- chocolate_reviews_filtered$country_of_bean_origin
 chocolate_part2 <- chocolate %>% filter(country_of_bean_origin %in% countries__part2)
 
 gapminder_data <- gapminder %>% select(country, continent)
 country_continent <- unique(gapminder_data)
 
-chocolate_reviews_with_continent <- chocolate_reviews_filtered %>%
+chocolate_reviews_with_continent <- chocolate %>%
   left_join(country_continent, by = c("country_of_bean_origin" = "country"))
 
+chocolate_reviews_with_continent <- chocolate_reviews_with_continent %>% 
+  group_by(country_of_bean_origin)  %>%  # group by origin
+  filter(n()>=10) %>%  # at least 10 reviews
+  filter(country_of_bean_origin != "Blend")  # remove blend
+
+miss_continent <- sum(is.na(chocolate_reviews_with_continent$continent))
 
 fill_continent <- c(
   "Belize" ="Americas",
