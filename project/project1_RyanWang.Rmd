@@ -136,7 +136,7 @@ chocolate_50rating <- chocolate %>%
                                 cocoa_percent_numeric>=90 ~ ">=90%")) %>% # new column that identify the percentages
   mutate(percentage = as.factor(percentage)) %>%
   mutate(percentage = fct_relevel(percentage, c("<60%", ">=60 to <70%", ">=70 to <90%", ">=90%"))) %>%
-  arrange((cocoa_percent_numeric)) 
+  arrange((cocoa_percent_numeric))  
 
 ggplot(chocolate_50rating, aes(y=rating, x=percentage)) + geom_boxplot() +
   facet_wrap(.~country_of_bean_origin)
@@ -152,9 +152,6 @@ The second category, ">= 60 to <70%" has the highest rating on average. A few co
 
 ## Part 2
 ```{r}
-countries__part2 <- chocolate_reviews_filtered$country_of_bean_origin
-chocolate_part2 <- chocolate %>% filter(country_of_bean_origin %in% countries__part2)
-
 gapminder_data <- gapminder %>% select(country, continent)
 country_continent <- unique(gapminder_data)
 
@@ -165,8 +162,6 @@ chocolate_reviews_with_continent <- chocolate_reviews_with_continent %>%
   group_by(country_of_bean_origin)  %>%  # group by origin
   filter(n()>=10) %>%  # at least 10 reviews
   filter(country_of_bean_origin != "Blend")  # remove blend
-
-miss_continent <- sum(is.na(chocolate_reviews_with_continent$continent))
 
 fill_continent <- c(
   "Belize" ="Americas",
@@ -183,7 +178,22 @@ fill_continent <- c(
 )
 
 chocolate_reviews_with_continent <-chocolate_reviews_with_continent %>% 
-  mutate(continent = ifelse(is.na(continent), fill_continent[country_of_bean_origin], continent))
+  mutate(continent = ifelse(is.na(continent), as.character(fill_continent[country_of_bean_origin]), as.character(continent)))
+# fill the na
+
+chocolate_reviews_with_continent %>%
+    ggplot(aes(
+        x = as.factor(continent), y = rating)) +
+    geom_violin(alpha = 0.6, trim = F) +
+  labs(x = "Continent", y = "Rating", title = "Chocolate Ratings in Different Continent",
+       caption = "By Ryan Wang")  +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    plot.caption = element_text(size = 10)
+  )
+
 ```
 
 ## Part 3
