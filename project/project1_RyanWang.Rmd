@@ -12,14 +12,13 @@ library("here")
 library("dplyr")
 library("gapminder")
 library("stringr")
-```
 
-```{r}
 tuesdata <- tidytuesdayR::tt_load("2022-01-18")
 chocolate <- tuesdata$chocolate
 ```
 
-```{r}
+
+```{r, include=FALSE}
 # tests if a directory named "data" exists locally
 if (!dir.exists(here("data"))) {
     dir.create(here("data"))
@@ -33,18 +32,19 @@ if (!file.exists(here("data", "chocolate.RDS"))) {
     # save the file to RDS objects
     saveRDS(chocolate, file = here("data", "chocolate.RDS"))
 }
-```
 
-```{r}
 chocolate <- readRDS(here("data", "chocolate.RDS"))
 as_tibble(chocolate)
 ```
 
 ## Part 1
+
+### 1
 ```{r}
 for (i in c(10, 15, 20, 25)) {
   p <- ggplot2::ggplot(data = chocolate, mapping = aes(rating)) + 
-       geom_histogram(bins = i) + labs(x="Rating")  # change the number of bins
+       geom_histogram(bins = i)  + # change the number of bins
+       labs(x="Rating", y = "Count") 
   print(p)
 }
 
@@ -53,6 +53,7 @@ nlevels(as.factor(chocolate$rating))
 1. The bins argument sets the total number of bins. So, the four plots have number of bins of 10, 15, 20, 25 respectively.
 I would pick bins=15, because the variable rating has 12 levels. Choosing the number of bins to be close to it makes the bins neither too dispersive nor clustered together. 
 
+### 2
 ```{r}
 nlevels(as.factor(chocolate$country_of_bean_origin))
 levels(as.factor(chocolate$country_of_bean_origin))
@@ -60,12 +61,14 @@ levels(as.factor(chocolate$country_of_bean_origin))
 reviews_count <- chocolate %>%
   count(country_of_bean_origin, sort = TRUE)
 
+print(reviews_count)
+
 ggplot(data=reviews_count, aes(y=n, x= with(reviews_count, reorder(country_of_bean_origin, n)))) + 
   geom_col() + coord_flip() +
   labs(y="Number of Reviews", x="Bean Origin", title = "Reviews from each Country of Bean Origin") 
 ```
 
-
+### 3
 ```{r}
 ecuador_rating <- chocolate %>% filter(country_of_bean_origin == "Ecuador")  # select Ecuador
 
@@ -80,29 +83,31 @@ ecuador_summary %>% knitr::kable()
 ```
 3. The average rating is 3.164, the standard deviation of the rating is 0.512. The total number of rating is 219.
 
-
+### 4
 ```{r}
 ecuador_rating_by_company <- ecuador_rating %>%
-  group_by(company_manufacturer) %>%  # group by company
+  group_by(company_location) %>%  # group by company
   summarize(rating_mean = mean(rating))  # mean rating
 
 ecuador_rating_by_company_sorted <- ecuador_rating_by_company %>% arrange(desc(rating_mean))
 
 best_choco_ecuador <- ecuador_rating_by_company_sorted[1:5,1]
-best_choco_ecuador
+print(best_choco_ecuador)
 ```
-4. Amano, Benoit Nihant, Beschle (Felchlin), Durci, Smooth Chocolator, The. They all have the average ratings of 4.
+4. Australia has the highest average ratings of 3.81.
 
+### 5
 ```{r}
 choco_rating_by_origin_sorted <- chocolate %>%
   group_by(country_of_bean_origin) %>%  # group by origin
   summarize(rating_mean = mean(rating))%>% arrange(desc(rating_mean))
 
 top_3_country <- choco_rating_by_origin_sorted[1:3,1]
-top_3_country
+print(top_3_country)
 ```
 5. The top 3 countries with highest ratings on average is Tobago, China, Sao Tome & Principe.
 
+### 6
 ```{r}
 choco_rating_num_by_origin <- chocolate %>%
   group_by(country_of_bean_origin) %>%  # group by origin
@@ -116,10 +121,11 @@ chocolate_rating_filtered <- chocolate %>%
   summarize(rating_mean = mean(rating))%>% arrange(desc(rating_mean))
 
 top_3_country_filtered <- chocolate_rating_filtered[1:3,1]
-top_3_country_filtered
+print(top_3_country_filtered)
 ```
 6. Now, the to 3 countries with highest ratings are Solomon Islands, Congo, Cuba.
 
+### 7
 ```{r}
 choco_50rating_num_by_origin <- chocolate %>%
   group_by(country_of_bean_origin) %>%  # group by origin
@@ -133,7 +139,8 @@ chocolate_50rating <- chocolate %>%
   mutate(percentage = case_when(cocoa_percent_numeric <60 ~ "<60%",
                       cocoa_percent_numeric>=60 & cocoa_percent_numeric<70 ~ ">=60 to <70%",
                       cocoa_percent_numeric>=70 & cocoa_percent_numeric<90 ~ ">=70 to <90%",
-                                cocoa_percent_numeric>=90 ~ ">=90%")) %>% # new column that identify the percentages
+                                cocoa_percent_numeric>=90 ~ ">=90%")) %>% 
+  # new column that identify the percentages
   mutate(percentage = as.factor(percentage)) %>%
   mutate(percentage = fct_relevel(percentage, c("<60%", ">=60 to <70%", ">=70 to <90%", ">=90%"))) %>%
   arrange((cocoa_percent_numeric))  
@@ -146,7 +153,7 @@ ggplot(chocolate_50rating, aes(y=rating, x=percentage)) + geom_boxplot() +
 chocolate_rating_by_percent <- chocolate_50rating %>%
   group_by(percentage) %>%
   summarize(rating_mean = mean(rating))%>% arrange(desc(rating_mean))
-chocolate_rating_by_percent
+print(chocolate_rating_by_percent)
 ```
 The second category, ">= 60 to <70%" has the highest rating on average. A few countries have disagreements with this result, such as Nicaragua, Mexico, Brazil, Blend, Bellize.
 
@@ -242,7 +249,7 @@ chocolate_part3 <- chocolate %>%
 ```
 
 ## part 4
-```{r}
+```{r, message=FALSE, warning=F}
 ggplot(chocolate_part3, aes(y=mean_score, x=review_date)) + geom_point(color = "red", size = 1, alpha = 0.6) +
     geom_smooth(method = "loess", size = 1) + facet_wrap( ~ feature, nrow = 3) +
   labs(title = "Changes in Chocolate Ingredients over Time",
@@ -254,7 +261,6 @@ ggplot(chocolate_part3, aes(y=mean_score, x=review_date)) + geom_point(color = "
     plot.subtitle = element_text(size = 12, face = "italic"),
     axis.title.x = element_text(size = 12),
     axis.title.y = element_text(size = 12),
-    strip.text = element_text(size = 10, face = "bold"),
     plot.caption = element_text(size = 10)
   )
 ```
@@ -311,7 +317,6 @@ chocolate %>%
     axis.title.x = element_text(size = 12),
     axis.text.x = element_text(angle = 30),
     axis.title.y = element_text(size = 12),
-    strip.text = element_text(size = 10, face = "bold"),
     plot.caption = element_text(size = 10),
     legend.position = "none",
     panel.grid.major = element_line(colour = "gray80")
