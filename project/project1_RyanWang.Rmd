@@ -46,7 +46,8 @@ as_tibble(chocolate)
 for (i in c(10, 15, 20, 25)) {
   p <- ggplot2::ggplot(data = chocolate, mapping = aes(rating)) + 
        geom_histogram(bins = i)  + # change the number of bins
-       labs(x="Rating", y = "Count") 
+       labs(x="Rating", y = "Count",
+            title = paste("Chocolate Ratings (", i, " bins)", sep = "")) 
   print(p)
 }
 
