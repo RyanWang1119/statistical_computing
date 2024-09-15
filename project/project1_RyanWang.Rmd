@@ -1,7 +1,9 @@
 ---
 title: "project1_RyanWang"
-output: html_document
-date: "2024-09-03"
+output: 
+  html_document:
+    code_folding: "hide"
+date: "2024-09-13"
 ---
 
 ```{r setup, include=FALSE}
@@ -55,8 +57,8 @@ I would pick bins=15, because the variable rating has 12 levels. Choosing the nu
 
 ### 2
 ```{r}
-nlevels(as.factor(chocolate$country_of_bean_origin))
-levels(as.factor(chocolate$country_of_bean_origin))
+# nlevels(as.factor(chocolate$country_of_bean_origin))
+# levels(as.factor(chocolate$country_of_bean_origin))
 
 reviews_count <- chocolate %>%
   count(country_of_bean_origin, sort = TRUE)
@@ -154,8 +156,16 @@ chocolate_rating_by_percent <- chocolate_50rating %>%
   group_by(percentage) %>%
   summarize(rating_mean = mean(rating))%>% arrange(desc(rating_mean))
 print(chocolate_rating_by_percent)
+
+countries_with_60to70_percent <- chocolate_50rating %>% 
+  group_by(country_of_bean_origin, percentage) %>%
+  summarize(rating_mean_by_percent = mean(rating)) %>% 
+  arrange(country_of_bean_origin, desc(rating_mean_by_percent)) %>%
+  distinct(country_of_bean_origin, .keep_all = TRUE) %>% filter(percentage != ">=60 to <70%")
+
+print(countries_with_60to70_percent)
 ```
-The second category, ">= 60 to <70%" has the highest rating on average. A few countries have disagreements with this result, such as Nicaragua, Mexico, Brazil, Blend, Bellize.
+The second category, ">= 60 to <70%" has the highest rating on average. A few countries have disagreements with this result, such as "Belize"    "Blend"     "Brazil"    "Colombia"  "Ecuador"   "Mexico"    "Nicaragua".
 
 ## Part 2
 ```{r}
@@ -246,6 +256,8 @@ chocolate_part3 <- chocolate %>%
                         "char_roasty", "char_earthy"), 
                names_to = "feature", 
                values_to = "mean_score")
+
+head(chocolate_part3)
 ```
 
 ## part 4
@@ -270,7 +282,6 @@ ggplot(chocolate_part3, aes(y=mean_score, x=review_date)) + geom_point(color = "
 ggplot(chocolate_50rating, aes(x = rating, y = cocoa_percent_numeric)) +
     geom_point(size = 20, color = "yellow", alpha = 1) +
     geom_point(aes(color = factor(review_date)), size = 15) +
-  # 5. Add an excessive, unreadable title and subtitle
   labs(x = "", y = "", 
        title = "Ratings and Cocoa Percent") +
   
