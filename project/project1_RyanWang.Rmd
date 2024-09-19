@@ -1,7 +1,9 @@
 ---
 title: "project1_RyanWang"
-output: html_document
+output: html_document:
+          code_folding: "hide"
 date: "2024-09-03"
+
 ---
 
 ```{r setup, include=FALSE}
@@ -154,6 +156,8 @@ chocolate_rating_by_percent <- chocolate_50rating %>%
   group_by(percentage) %>%
   summarize(rating_mean = mean(rating))%>% arrange(desc(rating_mean))
 print(chocolate_rating_by_percent)
+
+
 ```
 The second category, ">= 60 to <70%" has the highest rating on average. A few countries have disagreements with this result, such as Nicaragua, Mexico, Brazil, Blend, Bellize.
 
