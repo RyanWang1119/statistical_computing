@@ -1,0 +1,190 @@
+---
+title: "week4"
+author: "Ryan Wang"
+date: "2024-09-05"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::write_bib("rmarkdown", file = "my-refs.bib")
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+```
+
+## Matrix
+```{r}
+m <- matrix(nrow = 2, ncol = 3) 
+m
+```
+
+## List
+```{r}
+x <- list(1, "a", TRUE, 1 + 4i) 
+x
+```
+List takes different types of input.
+
+```{r}
+x <- c(1, 2, NA, NaN, 3)  
+is.na(x)
+is.nan(x)
+```
+Return a logical vector indicating which elements are NA, NAN.
+
+##
+```{r}
+x <- data.frame(foo = 1:4, bar = c(T, T, F, F)) 
+x
+attributes(x)
+
+data.matrix(x)
+attributes(data.matrix(x))
+```
+Data frames can be converted to a matrix by calling data.matrix().
+
+## Name
+```{r}
+x <- 1:3
+names(x)
+
+names(x) <- c("New York", "Seattle", "Los Angeles")  # assign names
+x
+x["Seattle"]
+names(x)
+attributes(x)
+
+x <- list("Los Angeles" = 1, Boston = 2, London = 3)  # Lists can also have names
+x
+```
+
+## if-else
+```{r}
+x <- runif(n = 1, min = 0, max = 10)
+x
+
+if (x > 3) {
+    y <- 10
+} else {
+    y <- 0
+}
+y
+```
+
+```{r}
+"b" %in% letters
+letters %in% "b"
+```
+%in% returns T/F with length equal to the length of vector on the left side.
+
+## for loop
+```{r}
+## define the loop to iterate over
+x <- c("a", "b", "c", "d")
+
+## create for loop
+for (i in 1:4) {
+    ## Print out each element of 'x'
+    print(x[i])
+}
+```
+
+### seq_along()
+```{r}
+x
+seq_along(x)
+
+## Generate a sequence based on length of 'x'
+for (i in seq_along(x)) {
+    print(x[i])
+}
+```
+
+### Nested for loops
+```{r}
+x <- matrix(1:6, nrow = 2, ncol = 3)
+x
+
+for (i in seq_len(nrow(x))) {
+    for (j in seq_len(ncol(x))) {
+        print(x[i, j])
+    }
+}
+```
+
+## while Loops
+```{r}
+count <- 0
+while (count < 10) {
+    print(count)
+    count <- count + 1
+}
+
+z <- 5
+set.seed(1)
+
+while (z >= 3 && z <= 10) {
+    coin <- rbinom(1, 1, 0.5)
+
+    if (coin == 1) { ## random walk
+        z <- z + 1
+    } else {
+        z <- z - 1
+    }
+}
+print(z)
+```
+
+## repeat Loops
+```{r}
+x0 <- 1
+tol <- 1e-8
+
+repeat {
+    x1 <- computeEstimate()
+
+    if (abs(x1 - x0) < tol) { ## Close enough?
+        break
+    } else {
+        x0 <- x1
+    }
+}
+```
+repeat initiates an infinite loop right from the start. Use break to exit the loop.
+
+## next
+```{r}
+for (i in 1:100) {
+    if (i <= 20) {
+        ## Skip the first 20 iterations
+        next
+    }
+    ## Do something here
+}
+```
+next is used to skip an iteration of a loop.
+
+## function
+```{r}
+f <- function(num) {
+    for (i in seq_len(num)) {
+        hello <- "Hello, world!\n"
+        cat(hello)
+    }
+}
+f(3)
+```
+hello is only defined in the function.
+
+### default function
+```{r}
+f <- function(num=2) {
+    for (i in seq_len(num)) {
+        hello <- "Hello, world!\n"
+        cat(hello)
+    }
+}
+f()
+```
+

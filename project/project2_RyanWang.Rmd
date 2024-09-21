@@ -1,0 +1,62 @@
+---
+title: "project2_RyanWang"
+author: "Ryan Wang"
+date: "2024-09-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library("tidyverse")
+library("tidytuesdayR")
+```
+
+# Part 1
+
+## Part 1A
+```{r}
+Exp <- function(x, k) {
+    result <- 0
+    for (i in c(0,seq_len(k))){
+      result <- result + (x**i)/factorial(i)
+    }
+    result
+}
+
+Exp(x=2,k=2)  # 1+2+2^2/2! = 54
+Exp(x=3,k=2)  # 1+3+3^2/2! = 8.5
+Exp(x=4,k=3)  # 1+4+4^2/2!+4^3/3! = 23.66667
+```
+
+## Part 1B
+```{r}
+sample_mean <- function(x) {
+  sample_sum <- 0
+    for (i in 1:length(x)){
+      sample_sum <- sample_sum + x[i]
+    }
+  s_mean <- sample_sum/length(x)
+  s_mean
+}
+x <- c(4,6,2,0,3,6)
+identical(mean(x),sample_mean(x))
+
+
+
+sample_sd <- function(x) {
+    sample_sum_of_square <- 0
+    for (i in 1:length(x)){
+      sample_sum_of_square <- sample_sum_of_square + (x[i]-sample_mean(x))**2
+    }
+  s_sd <- sqrt(sample_sum_of_square/(length(x)-1))
+  s_sd
+}
+
+sample_sd(x)
+```
+
+
+
+
+
