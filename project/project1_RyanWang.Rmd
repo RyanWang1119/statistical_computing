@@ -1,16 +1,9 @@
 ---
 title: "project1_RyanWang"
-<<<<<<< HEAD
-output: html_document:
-          code_folding: "hide"
-date: "2024-09-03"
-
-=======
 output: 
   html_document:
     code_folding: "hide"
 date: "2024-09-13"
->>>>>>> 6a2a5911ac9432a15be9ec3858181e5ac1389606
 ---
 
 ```{r setup, include=FALSE}
@@ -165,9 +158,6 @@ chocolate_rating_by_percent <- chocolate_50rating %>%
   summarize(rating_mean = mean(rating))%>% arrange(desc(rating_mean))
 print(chocolate_rating_by_percent)
 
-<<<<<<< HEAD
-
-=======
 countries_with_60to70_percent <- chocolate_50rating %>% 
   group_by(country_of_bean_origin, percentage) %>%
   summarize(rating_mean_by_percent = mean(rating)) %>% 
@@ -175,7 +165,6 @@ countries_with_60to70_percent <- chocolate_50rating %>%
   distinct(country_of_bean_origin, .keep_all = TRUE) %>% filter(percentage != ">=60 to <70%")
 
 print(countries_with_60to70_percent)
->>>>>>> 6a2a5911ac9432a15be9ec3858181e5ac1389606
 ```
 The second category, ">= 60 to <70%" has the highest rating on average. A few countries have disagreements with this result, such as "Belize"    "Blend"     "Brazil"    "Colombia"  "Ecuador"   "Mexico"    "Nicaragua".
 

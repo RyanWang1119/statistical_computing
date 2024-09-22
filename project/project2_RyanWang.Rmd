@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library("tidyverse")
 library("tidytuesdayR")
+library("here")
 ```
 
 # Part 1
@@ -39,8 +40,8 @@ sample_mean <- function(x) {
   s_mean <- sample_sum/length(x)
   s_mean
 }
-x <- c(4,6,2,0,3,6)
-identical(mean(x),sample_mean(x))
+a <- rnorm(5, mean = 0, sd = 1)
+ifelse(mean(a)-sample_mean(a) < 0.0001, T, F)
 
 
 
@@ -53,10 +54,148 @@ sample_sd <- function(x) {
   s_sd
 }
 
-sample_sd(x)
+ifelse(sample_sd(a)- sd(a) < 0.0001, T, F)
 ```
 
+## Part 1C
+```{r}
+alpha <- 1 - 0.95
+degrees_freedom <- 50 - 1
+t_score <- qt(p = alpha / 2, df = degrees_freedom, lower.tail = FALSE)
 
+calculate_CI <- function(x, conf = 0.95) {
+    s_mean <- sample_mean(x)
+    s_sd <- sample_sd(x)
+    s_mean_sd <- sample_sd(x)/sqrt(length(x))
+    alpha <- 1 - conf
+    t_value <- qt(p = alpha / 2, df = length(x)-1, lower.tail = FALSE)
+    ci <- c(s_mean-t_value*s_mean_sd, s_mean+t_value*s_mean_sd)
+    ci
+}
 
+set.seed(92)
+b <- c(rpois(25, 2), rnorm(25, mean = 3, sd = 1))
+calculate_CI(b)
+
+dat <- data.frame(x = b)
+fit <- lm(b ~ 1, dat)
+confint(fit, level = 0.95)
+```
+# Part 2
+## Load the data
+```{r, eval=FALSE}
+tuesdata <- tidytuesdayR::tt_load("2020-01-07")
+rainfall <- tuesdata$rainfall
+temperature <- tuesdata$temperature
+
+if (!file.exists(here("data", "tuesdata_rainfall.RDS"))) {
+    tuesdata <- tidytuesdayR::tt_load("2020-01-07")
+    rainfall <- tuesdata$rainfall
+    temperature <- tuesdata$temperature
+
+    # save the files to RDS objects
+    saveRDS(tuesdata$rainfall, file = here("data", "tuesdata_rainfall.RDS"))
+    saveRDS(tuesdata$temperature, file = here("data", "tuesdata_temperature.RDS"))
+}
+```
+
+```{r}
+rainfall <- readRDS(here("data", "tuesdata_rainfall.RDS"))
+temperature <- readRDS(here("data", "tuesdata_temperature.RDS"))
+```
+
+```{r}
+rainfall_no_na <- drop_na(rainfall)  # drop na
+rainfall_no_na <- rainfall_no_na %>% mutate(date_num = str_c(month, day, year)) %>% 
+  mutate(date = mdy(date_num)) %>% select(-date_num)  # a new column date
+
+rainfall_no_na <- rainfall_no_na %>% rename(lower_city=city_name) %>% 
+  mutate(city_name = str_to_upper(lower_city))  # uppercase city
+rainfall_no_na <- rainfall_no_na %>% select(-lower_city, -month, -day) 
+
+rainfall_temperature <- inner_join(rainfall_no_na, temperature, by = c("city_name", "date"))
+```
+
+# Part 3
+## Part 3A
+```{r}
+rainfall_temperature_2014 <- rainfall_temperature %>% filter(year >= 2014)  # years 2014 and onwards.
+levels(as.factor(rainfall_temperature_2014$city_name))
+```
+```{r}
+ggplot(rainfall_temperature_2014, aes(x = date, y = temperature, color = temp_type)) +
+  geom_line() +
+  facet_wrap(~ city_name, ncol = 2) +
+  labs(title = "Min/Max Temperature over Time by City",
+       x = "Date",
+       y = "Temperature",
+       color = "Temperature Type") +
+  theme_minimal()
+
+```
+
+## Part 3B
+```{r}
+rainfall_temperature %>%
+    filter(city_name == "PERTH", year == 2000) %>%
+    ggplot(aes(log(rainfall))) +
+    geom_histogram()
+
+dist_of_rain <- function(x_city_name, x_year){
+  if (!x_city_name %in% unique(rainfall_temperature$city_name)) {
+    stop(paste("Error: The city", x_city_name, "does not exist in the dataset."))
+  }
+  if (!x_year %in% unique(rainfall_temperature$year)) {
+    stop(paste("Error: The year", x_year, "does not exist in the dataset."))
+  }
+  else {
+    rainfall_temperature %>%
+    filter(city_name == x_city_name, year == x_year) %>%
+    ggplot(aes(log(rainfall))) +
+    geom_histogram(bins = 30, fill = "darkgreen", color = "black") + 
+    labs(x = "Log of Rainfall", y="Count",
+        title = paste("Distribution of Rainfall in ", x_city_name, " in ", x_year, "", sep = "")) +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 12), 
+    axis.text = element_text(size = 10)
+  )
+  }
+  
+}
+
+dist_of_rain("SYDNEY", 2012)
+# dist_of_rain("SYDNEY", 2212) error 
+# dist_of_rain("Hangzhou", 2012) error
+```
+The function *dist_of_rain takes* two arguments, *x_city_name* and *x_year*. It first checks if the inputs *x_city_name* and *x_year* are in the dataset. If not, the function generates an error message to give the warning.
+If both arguments are in the dataset, they are passed into the *ggplot* function so that the histogram will be plotted for the specific city and year.
+
+# Part 4
+## Part 4A
+```{r}
+rainfall_temperature_2014 <- rainfall_temperature %>% filter(year >= 2014)  # years 2014 and onwards.
+
+rain_df <- rainfall_temperature_2014 %>% group_by(city_name, year) %>%
+  summarise(mean = sample_mean(rainfall),
+            std = sample_sd(rainfall),
+            lower_bound = calculate_CI(rainfall)[1],
+            upper_bound = calculate_CI(rainfall)[2])
+rain_df
+```
+
+## Part 4B
+```{r}
+ggplot(rain_df, aes(year, mean)) + geom_point() + geom_line() + 
+  geom_errorbar(aes(ymin = lower_bound, ymax = upper_bound), width = 0.2) +  
+  facet_wrap(~ city_name, ncol = 2) + 
+  labs(x= "Year", y="Mean Rainfall", title = "Mean Rainfall in Different Cities") + 
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title = element_text(size = 12), 
+    axis.text = element_text(size = 10)
+  )
+```
 
 
