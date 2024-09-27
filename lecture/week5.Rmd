@@ -1,0 +1,97 @@
+---
+title: "week5"
+author: "Ryan Wang"
+date: "2024-09-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::write_bib("rmarkdown", file = "my-refs.bib")
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+```
+
+# Functional loops
+## lapply(): 
+Loop over a list and evaluate a function on each element. returns a list.
+```{r}
+x <- list(a = 1:5, b = rnorm(10))
+x
+lapply(x, mean)
+```
+
+```{r}
+x <- 1:4
+lapply(x, runif)
+lapply(x, runif, min=0, max=10)
+```
+Functions that you pass to lapply() may have other arguments.
+
+## sapply():
+The sapply() function behaves similarly to lapply().
+simplify the return: 
+If the result is a list where every element is length 1, then a vector is returned
+
+If the result is a list where every element is a vector of the same length (> 1), a matrix is returned.
+
+If it can’t figure things out, a list is returned.
+```{r}
+x <- list(a = 1:4, b = rnorm(10), c = rnorm(20, 1), d = rnorm(100, 5))
+lapply(x, mean)
+sapply(x, mean)
+```
+
+
+## mapply(): 
+multivariate version of lapply():
+```{r}
+x <- 1: 10
+y <- 1: 10
+
+my_sum <- function(a, b) {
+    a + b
+}
+
+## Same but with an extra check to make sure that 'a' and 'b'
+## have the same lengths.
+my_sum <- function(a, b) {
+    ## Check that a and b are of the same length
+    stopifnot(length(a) == length(b))
+    a + b
+}
+
+## Apply mapply() to our function my_sum() with the inputs 'x' and 'y'
+mapply(my_sum, x, y)
+```
+
+# Split
+```{r}
+x <- c(rnorm(n=10,0), rnorm(n=10,10), rnorm(n=10,100))
+f <- gl(3, 10) # generate factor levels
+f
+split(x, f)
+
+lapply(split(x, f), mean)
+```
+
+## Split a dataframe
+```{r}
+library("datasets")
+head(airquality)
+
+s <- split(airquality, airquality$Month)
+str(s)
+
+lapply(s, function(x) {
+    colMeans(x[, c("Ozone", "Solar.R", "Wind")],
+             na.rm = TRUE)
+})
+
+sapply(s, function(x) {
+    colMeans(x[, c("Ozone", "Solar.R", "Wind")],
+             na.rm = TRUE)
+})
+```
+
+
