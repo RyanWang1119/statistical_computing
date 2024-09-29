@@ -82,6 +82,7 @@ head(airquality)
 
 s <- split(airquality, airquality$Month)
 str(s)
+s
 
 lapply(s, function(x) {
     colMeans(x[, c("Ozone", "Solar.R", "Wind")],
@@ -94,4 +95,116 @@ sapply(s, function(x) {
 })
 ```
 
+# Handle error
+## message
+A generic notification/diagnostic message produced by the message() function; execution of the function continues
+```{r}
+print_message3 <- function(x) {
+    if (length(x) > 1L) {
+        stop("'x' has length > 1")
+    }
+    if (is.na(x)) {
+        print("x is a missing value!")
+    } else if (x > 0) {
+        print("x is greater than zero")
+    } else {
+        print("x is less than or equal to zero")
+    }
+    invisible(x)
+}
+
+print_message3(2)
+print_message3(NA)
+print_message3(c(1,2))
+```
+
+## call = False
+```{r}
+print_message3_no_call <- function(x) {
+    if (length(x) > 1L) {
+        stop("'x' has length > 1", call. = FALSE)
+    }
+    if (is.na(x)) {
+        print("x is a missing value!")
+    } else if (x > 0) {
+        print("x is greater than zero")
+    } else {
+        print("x is less than or equal to zero")
+    }
+    invisible(x)
+}
+
+print_message3_no_call(c(1,2))
+``` 
+Does not display "Error in print_message3(c(1, 2)) :".
+
+## tidyverse version
+base::stop() with rlang::abort()
+
+base::warning() with rlang::warn()
+
+base::message() with rlang::inform()
+```{r}
+print_message3_tidyverse <- function(x) {
+    if (length(x) > 1L) {
+        rlang::abort("'x' has length > 1")
+    }
+    if (is.na(x)) {
+        rlang::warn("x is a missing value!")
+    } else if (x > 0) {
+        rlang::inform("x is greater than zero")
+    } else {
+        rlang::inform("x is less than or equal to zero")
+    }
+    invisible(x)
+}
+
+print_message3_tidyverse(c(1,2))
+print_message3_tidyverse(NA)
+```
+
+## cli package
+```{r}
+print_message3_cli <- function(x) {
+    if (length(x) > 1L) {
+        len <- length(x)
+
+      
+        cli::cli_abort(
+            c(
+                "This function is not vectorized:",
+                "i" = "{.var x} has length {len}.",
+                "x" = "{.var x} must have length 1.",
+                ">" = "Try using {.code purrr::map(x, print_message3_cli)} to loop 
+                your input {.var x} on this function."
+            )
+        )
+    }
+    if (is.na(x)) {
+        rlang::warn("x is a missing value!")
+    } else if (x > 0) {
+        rlang::inform("x is greater than zero")
+    } else {
+        rlang::inform("x is less than or equal to zero")
+    }
+    invisible(x)
+}
+
+set.seed(20230928)
+print_message3_cli(-1:1)
+```
+
+## Vectorize the function
+```{r}
+print_message4 <- Vectorize(print_message3)
+out <- print_message4(c(-1, 2))
+```
+print_message3 takes single value. Works fine after vectorized.
+
+## traceback
+Prints out the function call stack after an error has occured.
+```{r}
+lm(y~x)
+traceback()
+```
 
