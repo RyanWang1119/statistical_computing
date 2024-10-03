@@ -1,0 +1,143 @@
+---
+title: "week6"
+author: "Ryan Wang"
+date: "2024-10-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("tidyverse")
+library("lubridate")
+```
+
+```{r}
+help(package = "lubridate")
+```
+
+```{r}
+## lubridate versions
+today()
+now()
+
+## base R versions
+base::Sys.Date()
+base::Sys.time()
+```
+
+## From a string
+Dates can be coerced from a character strings.
+```{r}
+ymd("1970-01-01")
+mdy("January 1st, 2017")
+
+x <- list(
+    "2016-04-05",
+    "2016/05/06",
+    "2016,10,4",
+    20161001
+)
+ymd(x)
+```
+Date objects have their own special print() methods that will always format as “YYYY-MM-DD”.
+
+```{r}
+ymd_hms("2017-01-31 20:11:59")
+ymd_hms("2016-09-13 14:00:00", tz = "America/New_York")  # specify a time zone.
+```
+Times can be coerced from a character string with ymd_hms()
+
+## From individual date-time components
+```{r}
+library("nycflights13")
+
+flights %>%
+    select(year, month, day) %>%
+    mutate(departure = make_date(year, month, day))
+```
+make_date(year, month, day) for dates
+make_datetime(year, month, day, hour, min, sec, tz) for date-times
+
+## Time zone
+```{r}
+x <- ymd_hm("1970-01-01 01:00", tz = "")
+x
+attributes(x)
+
+attr(x, "tzone") <- "US/Pacific"
+x
+```
+tzone attribute controls how the time is printed, not what absolute time it refers to.
+
+## Arithmetic
+```{r}
+x <- ymd("2012-01-01", tz = "") ## Midnight
+y <- dmy_hms("9 Jan 2011 11:34:21", tz = "")
+x - y ## this works
+
+class(x)
+x + 3 * 60 * 60 # add 3 hours
+```
+POSIXct objects are a measure of seconds from an origin
+
+## Extracting Elements of Dates/Times
+```{r}
+x <- ymd_hms(c(
+    "2012-10-25 01:13:46",
+    "2015-04-23 15:11:23"
+), tz = "")
+
+year(x)
+day(x)
+second(x)
+week(x)
+```
+
+## grepl()
+Takes 2 arguments: A regular expression (pattern), A string to be searched (x). Return T/F.
+```{r}
+regular_expression <- "a"
+string_to_search <- "Maryland"
+
+grepl(pattern = regular_expression, x = string_to_search)
+```
+
+## metacharacters
+### period .
+represents any character other than a new line.
+```{r}
+grepl(".", "")
+grepl("a.b", c("aaa", "aab", "abb", "acadb"))
+```
+
+## repetition
++: indicates that one or more of the preceding expression should be present (or matches at least 1 time)
+*: indicates that zero or more of the preceding expression is present (or matches at least 0 times)
+?: indicates that zero or 1 of the preceding expression is not present or present at most 1 time
+```{r}
+# Does "Maryland" contain one or more of "a" ?
+grepl("a+", "Maryland")
+# Does "Maryland" contain one or more of "x" ?
+grepl("x+", "Maryland")
+# Does "Maryland" contain zero or more of "x" ?
+grepl("x*", "Maryland")
+
+grepl("a?", "Maaryland")
+```
+
+specify exact numbers of expressions using curly brackets {}.
+{n}: exactly n
+{n,}: n or more
+{,m}: at most m
+{n,m}: between n and m
+```{r}
+# Does "Mississippi" contain exactly 2 adjacent "s" ?
+grepl("s{2}", "Mississippi")
+# equivalent to
+grepl("ss", "Mississippi")
+
+# Does "Mississippi" contain the pattern of an "i" followed by
+# 2 of any character, with that pattern repeated three times adjacently?
+grepl("(i.{2}){3}", "Mississippi")
+```
+
