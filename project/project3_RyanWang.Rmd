@@ -1,0 +1,245 @@
+---
+title: "project_3_RyanWang"
+author: "Ryan Wang"
+date: "2024-10-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading the data
+```{r}
+library("here")
+rds_files <- c("b_lyrics.RDS", "ts_lyrics.RDS", "sales.RDS")
+## Check whether we have all 3 files
+if (any(!file.exists(here("data", rds_files)))) {
+    ## If we don't, then download the data
+    b_lyrics <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/beyonce_lyrics.csv")
+    ts_lyrics <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/taylor_swift_lyrics.csv")
+    sales <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-29/sales.csv")
+
+    ## Then save the data objects to RDS files
+    saveRDS(b_lyrics, file = here("data", "b_lyrics.RDS"))
+    saveRDS(ts_lyrics, file = here("data", "ts_lyrics.RDS"))
+    saveRDS(sales, file = here("data", "sales.RDS"))
+}
+
+b_lyrics <- readRDS(here("data", "b_lyrics.RDS"))
+ts_lyrics <- readRDS(here("data", "ts_lyrics.RDS"))
+sales <- readRDS(here("data", "sales.RDS"))
+```
+
+```{r}
+library(tidytext)
+library(dplyr)
+library(ggplot2)
+library(wordcloud)
+library(tidyr)
+library(stringr)
+library(scales)
+library(lubridate)
+library(forcats)
+```
+
+
+## Part 1
+
+### Part 1A
+```{r}
+sales_A <- sales %>% 
+  mutate(released = str_replace(released, "\\(\\w+\\)\\[\\d+\\]", "")) %>% # 1.1
+  mutate(released = as.Date(mdy(released, tz=""))) %>% # 1.2
+  mutate(country = fct_collapse(country, 
+                                "AUS"="AUS",
+                                "CAN"="CAN",
+                                "FRA"=c("FRA","FR"),
+                                "JPN"="JPN",
+                                "UK"="UK",
+                                "US"="US",
+                                "World"=c("WW","World"))) %>% # 2
+  mutate(sales=sales/1000000) %>% # 3
+  filter(country %in% c("US","UK", "World")) # 4
+
+print(sales_A)
+```
+
+### Part 1B
+```{r}
+sales_B <- sales_A %>% filter(country %in% c("US")) %>% # 1
+  mutate(years_since_release = as.period(interval(released, today()))@year) # 2
+
+summary_B <- sales_B %>% group_by(artist) %>%
+  summarize(most_recent = min(years_since_release),
+            oldest = max(years_since_release),
+            median_year = median(years_since_release))
+print(summary_B)
+```
+
+### Part 1C
+```{r}
+sales_C <- sales_A %>% filter(country %in% c("US", "UK", "World")) %>% # 1
+  group_by(artist, country) %>% summarize(total_sale = sum(sales))
+
+sales_C <- sales_C %>% group_by(artist) %>% 
+  mutate(total_sale_by_artist=sum(total_sale)) %>% 
+  mutate(percent_sale= total_sale/total_sale_by_artist)
+
+ggplot(sales_C, aes(x=artist, y=percent_sale, fill=country))+
+  geom_bar(stat= "identity", position = "fill")+
+  scale_y_continuous(labels = percent) +
+  labs(y="Percentage of Sales (in millions)", x="Artist",
+       title = "Percentage of Sales by Artist and Country",
+       subtitle = "Taylor Swift has a greater percentage of sales in the US, while Beyoncé world-widely")
+```
+
+### Part 1D
+```{r}
+sales_D <- sales_A %>% filter(country %in% c("World")) %>% # only world
+  mutate(title= fct_reorder(title, sales, .desc = F))
+
+ggplot(sales_D, aes(x=sales, y=title, fill=artist))+
+  geom_bar(stat= "identity")+
+  labs(x="World Sales(in millions)", y="Album Title",
+       title = "World Sales from High to Low (in millions)",
+       subtitle = "Taylor Swift's Fearless leads the world sales, with around 12 millions") + 
+  theme(axis.text.y = element_text(angle = 20))
+```
+
+### Part 1E
+```{r}
+sales_E <- sales_A %>% filter(country %in% c("US", "UK", "World"))
+
+ggplot(sales_E, aes(x=released, y=sales, color=artist))+
+  geom_point(stat= "identity")+
+  facet_wrap(~country, nrow = 3, scales = "free_y")+
+  labs(y="Sales(in millions)", x="Year",
+       title = "Sales in Different Areas Through Time(in millions)",
+       subtitle = "In UK, US, and World-widely, both artists showed decreases in their sales") + 
+  theme(axis.text.x = element_text(angle = 20))
+```
+
+## Part 2
+### Part 2A
+```{r}
+ts_lyrics <- ts_lyrics %>%
+  unnest_tokens(output=line, input=Lyrics, token = "lines")
+
+ts_lyrics_hello <- ts_lyrics %>% filter(grepl("hello", line, ignore.case=T))
+print(ts_lyrics_hello)
+cat("Total number of lines with hello:", nrow(ts_lyrics_hello))
+
+ts_lyrics_goodbye <- ts_lyrics %>% filter(grepl("goodbye", line, ignore.case=T))
+print(ts_lyrics_goodbye)
+cat("Total number of lines with goodbye:", nrow(ts_lyrics_goodbye))
+```
+
+
+### Part 2B
+```{r}
+b_lyrics_hello <- b_lyrics %>% filter(grepl("hello", line, ignore.case=T))
+print(b_lyrics_hello)
+cat("Total number of lines with hello:", nrow(b_lyrics_hello))
+
+b_lyrics_goodbye <- b_lyrics %>% filter(grepl("goodbye", line, ignore.case=T))
+print(b_lyrics_goodbye)
+cat("Total number of lines with goodbye:", nrow(b_lyrics_goodbye))
+```
+
+### Part 2C
+```{r}
+b_lyrics_token <- b_lyrics %>%
+  unnest_tokens(output=word, input=line, token = "words") %>% # tokenize
+  anti_join(stop_words, by = "word") %>% # remove stopwords
+  count(word, sort = TRUE) 
+
+bing <- get_sentiments("bing")
+
+b_wc_sentiment <- b_lyrics_token %>%
+  inner_join(bing, by = "word") %>%
+  arrange(desc(n))
+
+b_top_25_words <- b_wc_sentiment %>% head(25) # top 25 words
+print(b_top_25_words)
+
+ggplot(b_top_25_words, aes(x = n, y = reorder(word, n), fill = sentiment)) +
+  geom_col() +
+  labs(x = "Frequency", y = "Word", 
+       title = "Beyoncé's Top 25 Words with Sentiment",
+       subtitle = "Beyoncé's favorate word in her songs: 'love'") +
+  scale_fill_manual(values = c("positive" = "pink", "negative" = "darkgrey")) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 10))
+
+wordcloud(words = b_top_25_words$word, freq = b_top_25_words$n, max.words = 25, 
+          colors = brewer.pal(8, "Dark2"))
+```
+
+### Part 2D
+```{r}
+ts_lyrics_token <- ts_lyrics %>%
+  unnest_tokens(output=word, input=line, token = "words") %>% # tokenize
+  anti_join(stop_words, by = "word") %>% # remove stopwords
+  count(word, sort = TRUE) 
+
+bing <- get_sentiments("bing")
+
+ts_wc_sentiment <- ts_lyrics_token %>%
+  inner_join(bing, by = "word") %>%
+  arrange(desc(n))
+
+ts_top_25_words <- ts_wc_sentiment %>% head(25) # top 25 words
+print(ts_top_25_words)
+
+ggplot(ts_top_25_words, aes(x = n, y = reorder(word, n), fill = sentiment)) +
+  geom_col() +
+  labs(x = "Frequency", y = "Word", 
+       title = "Taylor Swift's Top 25 Words with Sentiment",
+       subtitle = "Taylor Swift's favorate word in her songs: 'love'") +
+  scale_fill_manual(values = c("positive" = "orange", "negative" = "darkgreen")) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 10))
+
+wordcloud(words = ts_top_25_words$word, freq = ts_top_25_words$n, max.words = 25, 
+          colors = brewer.pal(8, "Dark2"))
+```
+
+### Part 2E
+```{r}
+ts_lyrics_token <- ts_lyrics %>%
+  unnest_tokens(output=word, input=line, token = "words") %>% # tokenize
+  anti_join(stop_words, by = "word") %>% # remove stopwords
+  count(Album, word, sort = TRUE) 
+
+
+afinn_lexicon <- get_sentiments("afinn")
+
+word_counts_sentiment <- ts_lyrics_token %>%
+  inner_join(afinn_lexicon, by = "word")
+
+average_sentiment_by_album <- word_counts_sentiment %>%
+  group_by(Album) %>%
+  summarize(average_sentiment = sum(n * value, na.rm = TRUE)/sum(n)) %>%
+  ungroup()
+
+print(average_sentiment_by_album)
+
+
+sales_E <- sales_A %>% filter(country %in% c("US")) %>% rename(Album=title)
+
+
+combined_data <- average_sentiment_by_album %>%
+  inner_join(sales_E, by = "Album") %>% mutate(released=as.Date(released))
+
+
+ggplot(combined_data, aes(x = released, y = average_sentiment, size = sales)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(x = "Released Date", y = "Average Sentiment Score", size = "Sales (in millions)",
+       title = "Sentiment of Taylor Swift's Albums Over Time") +
+  theme_minimal() +
+  scale_size_area(max_size = 8) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+

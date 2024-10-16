@@ -1,0 +1,181 @@
+---
+title: "week7"
+author: "Ryan Wang"
+date: "2024-10-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## factor levels
+```{r}
+x <- c("Dec", "Apr", "Jan", "Mar")
+month_levels <- c(
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+)
+
+y <- factor(x, levels = month_levels)
+y
+sort(y)
+```
+Any values not in the level will be silently converted to NA.
+
+## as.numeric()
+```{r}
+library(tidyverse)
+
+x1_original <- c(10, 10, 10, 50, 60, 20, 20, 40)
+x1_factor <- factor(x1_original)
+attributes(x1_factor)
+
+tibble(x1_original, x1_factor) %>%
+    mutate(x1_numeric = as.numeric(x1_factor))
+```
+as.numeric() with factors: return the order number of the factor level.
+
+```{r}
+a <- factor(c("hello", "goodbye"))
+a
+as.numeric(a)
+```
+Creates factor numbers and orders them according to an alphabetical order.
+
+## forcats
+```{r}
+library("forcats")
+gss_cat
+
+gss_cat %>%
+    count(race)
+table(gss_cat$race, useNA = "ifany")
+summary(gss_cat$race)
+```
+
+```{r}
+gss_cat %>%
+    count(relig)
+levels(gss_cat$relig)
+```
+
+```{r}
+relig_summary <- gss_cat %>%
+    group_by(relig) %>%
+    summarise(
+        tvhours = mean(tvhours, na.rm = TRUE),
+        n = n()
+    )
+
+relig_summary %>%
+    ggplot(aes(x = tvhours, y = relig)) +
+    geom_point()
+```
+
+### fct_reorder
+Reorder the levels of relig use fct_reorder(). fct_reorder(.f, .x, .fun) takes three arguments:
+
+.f, the factor whose levels you want to modify.
+
+.x, a numeric vector that you want to use to reorder the levels.
+
+Optionally, .fun, a function that’s used if there are multiple values of x for each value of f. The default value is median.
+```{r}
+relig_summary %>%
+    ggplot(aes(
+        x = tvhours,
+        y = fct_reorder(.f = relig, .x = tvhours)
+    )) +
+    geom_point()
+# the same as:
+relig_summary %>%
+    mutate(relig = fct_reorder(relig, tvhours)) %>%
+    ggplot(aes(x = tvhours, y = relig)) +
+    geom_point()
+
+rincome_summary <-
+    gss_cat %>%
+    group_by(rincome) %>%
+    summarise(
+        age = mean(age, na.rm = TRUE),
+        n = n()
+    )
+
+## Original rincome order
+rincome_summary %>%
+    ggplot(aes(x = age, y = rincome)) +
+    geom_point()
+
+rincome_summary %>%
+    ggplot(aes(age, fct_relevel(rincome, "Not applicable"))) +
+    geom_point()
+```
+
+fct_relevel moves levels to the front of the line.
+
+```{r}
+library("tidyverse")
+library("palmerpenguins")
+bill_info <- penguins %>%
+  group_by(species) %>%
+  summarise(bill_length_mm = mean(bill_length_mm, na.rm = T)) %>%
+  mutate(species = fct_rev(fct_reorder(.f = species, .x=bill_length_mm, .desc = T)))
+
+bill_info %>% ggplot(aes(x=bill_length_mm, y=species)) + 
+  geom_point()
+
+```
+
+## fct_infreq
+for bar plots, you can use fct_infreq() to order levels in decreasing frequency.
+```{r}
+gss_cat %>%
+    mutate(marital = marital %>% fct_infreq() %>% fct_rev()) %>%
+    ggplot(aes(marital)) +
+    geom_bar()
+```
+
+## fct_recode
+the new values go on the left
+the old values go on the right
+```{r}
+gss_cat %>%
+    mutate(partyid = fct_recode(partyid,
+        "Republican, strong"    = "Strong republican",
+        "Republican, weak"      = "Not str republican",
+        "Independent, near rep" = "Ind,near rep",
+        "Independent, near dem" = "Ind,near dem",
+        "Democrat, weak"        = "Not str democrat",
+        "Democrat, strong"      = "Strong democrat"
+    )) %>%
+    count(partyid)
+
+gss_cat %>%
+    mutate(partyid = fct_recode(partyid,
+        "Republican, strong"    = "Strong republican",
+        "Republican, weak"      = "Not str republican",
+        "Independent, near rep" = "Ind,near rep",
+        "Independent, near dem" = "Ind,near dem",
+        "Democrat, weak"        = "Not str democrat",
+        "Democrat, strong"      = "Strong democrat",
+        "Other"                 = "No answer",
+        "Other"                 = "Don't know",
+        "Other"                 = "Other party"
+    )) %>%
+    count(partyid)
+```
+the new values can be not unique to combine things.
+
+## fct_collapse
+```{r}
+gss_cat %>%
+    mutate(partyid = fct_collapse(partyid,
+        "other" = c("No answer", "Don't know", "Other party"),
+        "rep" = c("Strong republican", "Not str republican"),
+        "ind" = c("Ind,near rep", "Independent", "Ind,near dem"),
+        "dem" = c("Not str democrat", "Strong democrat")
+    )) %>%
+    count(partyid)
+```
+
